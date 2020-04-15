@@ -28,6 +28,8 @@ def graph_from_xy(xy, alpha=6, threshold=1e-8):
         xy = an n-by-2 matrix of xy-coordinates
         alpha = power parameter in interaction strength.
                 Reduces to unit step function if alpha = float('inf')
+        threshold = (optional) the minimum value of a edge
+                weight to be counted as an edge (default: 1e-8)
 
     Returns:
         a networkx.Graph
@@ -111,7 +113,9 @@ def parse_MoMC_output_full(out):
 
 ###### Main Function for solving MIS ######
 
-def run_MoMC_for_unweighted_MIS(graph: nx.Graph, node_to_index_map=None, verbose=True):
+def run_MoMC_for_unweighted_MIS(graph: nx.Graph,
+                                node_to_index_map=None,
+                                verbose=True):
     """ Run the MoMC algorithm to find a MIS of a given graph.
     
     Requires the compiled executable MoMC to be in the
@@ -119,6 +123,8 @@ def run_MoMC_for_unweighted_MIS(graph: nx.Graph, node_to_index_map=None, verbose
     
     Args:
         graph = a networkx.Graph whose MIS you want to find
+        node_to_index_map = (optional) a dictionary {v: i} mapping
+            nodes v to 0-based index i
 
     Returns:
         a list of nodes in the MIS
@@ -150,7 +156,9 @@ def run_MoMC_for_unweighted_MIS(graph: nx.Graph, node_to_index_map=None, verbose
     return MIS
 
 
-def run_MoMC_for_unweighted_MIS_info(graph: nx.Graph, node_to_index_map=None, verbose=True):
+def run_MoMC_for_unweighted_MIS_info(graph: nx.Graph,
+                                     node_to_index_map=None,
+                                     verbose=True):
     """ Run the MoMC algorithm to find a MIS of a given graph.
     
     Requires the compiled executable MoMC to be in the
@@ -158,9 +166,12 @@ def run_MoMC_for_unweighted_MIS_info(graph: nx.Graph, node_to_index_map=None, ve
     
     Args:
         graph = a networkx.Graph whose MIS you want to find
+        node_to_index_map = (optional) a dictionary {v: i} mapping
+            nodes v to 0-based index i
 
     Returns:
-        (a list of nodes in the MIS, Branching, Time, ProveBranching, ProveTime)
+        (a list of nodes in the MIS,
+         Branching, Time, ProveBranching, ProveTime)
     """
     file_ID, filename = tempfile.mkstemp()
     if node_to_index_map is None:
@@ -211,7 +222,7 @@ def write_Ising_to_ASCII(h, J, file, precision=1e-6):
         -x1 x2 => (x1 | x2) & (x1 | !x2) & (!x1 | x2) 
                   ^ 3 clauses are true if x1 = x2 = 1, 2 otherwise
 
-    The weighted CNF is then written to the file, where h_i are J_{ij}
+    The weighted CNF is then written to the file, where h_i and J_{ij}
     are written up to the provided precision.
     """
     num_variables = len(h)
