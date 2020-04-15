@@ -22,14 +22,14 @@ def run_cmd(cmd):
 def graph_from_xy(xy, alpha=6, threshold=1e-8):
     """ Create a networkx.Graph object from xy-coordinates
     where the edge weights correspond to
-            1 / [1 + (r_i - r_j)^alpha]
+            1 / ||r_i - r_j||^alpha
     
     Args:
         xy = an n-by-2 matrix of xy-coordinates
         alpha = power parameter in interaction strength.
                 Reduces to unit step function if alpha = float('inf')
 
-    Output:
+    Returns:
         a networkx.Graph
     """
     n, d = xy.shape
@@ -38,7 +38,7 @@ def graph_from_xy(xy, alpha=6, threshold=1e-8):
     def interaction(displacement):
         distnorm = np.linalg.norm(displacement)
         if alpha < float('inf'):
-            return 1/(1 + distnorm**alpha)
+            return 1/distnorm**alpha
         elif distnorm <= 1:
             return 1
         else:
@@ -59,15 +59,19 @@ def graph_from_xy(xy, alpha=6, threshold=1e-8):
 #############################################################
 
 
-def write_unweighted_MIS_to_ASCII(graph, file):
+def write_unweighted_MIS_to_ASCII(graph, file, node_to_index_map=None):
     """ Write MIS problem on a graph as a MaxClique problem
     in DIMACS ASCII form, to be passed to the MoMC algorithm.
     """
     gcomp = nx.complement(graph)
     file.write("p col %d %d\n" % (gcomp.number_of_nodes(), gcomp.number_of_edges()))
+
+    if node_to_index_map is None:
+        node_to_index_map = {v: i for i, v in enumerate(graph.nodes)}
+
     for u, v in gcomp.edges():
         # add 1 to node index to go from 0-based to 1-based index
-        file.write("e %d %d\n" % (u+1, v+1))
+        file.write("e %d %d\n" % (node_to_index_map[u]+1, node_to_index_map[v]+1))
 
 
 def parse_MoMC_output(out):
@@ -80,9 +84,34 @@ def parse_MoMC_output(out):
             return [int(x)-1 for x in temp[2:].split()]
 
 
+def parse_MoMC_output_full(out):
+    """ Read the output from MoMC in string and returns the list of
+    nodes corresponding to the MIS (converted to zero-based index),
+    and run-time and branching information.
+    
+    Returns:
+        (MIS, Branching, Time, ProveBranching, ProveTime)
+    """
+    for line in out.splitlines():
+        temp = str(line.decode())
+
+        if temp.startswith('M'):
+            MIS = [int(x)-1 for x in temp[2:].split()]
+
+        if temp.startswith('s'):
+            tempsplit = temp.split()
+            assert len(MIS) == int(tempsplit[4])
+            Branching = int(tempsplit[6])
+            Time = float(tempsplit[8])
+            ProveBranching = int(tempsplit[10])
+            ProveTime = float(tempsplit[12])
+
+    return MIS, Branching, Time, ProveBranching, ProveTime
+
+
 ###### Main Function for solving MIS ######
 
-def run_MoMC_for_unweighted_MIS(graph: nx.Graph):
+def run_MoMC_for_unweighted_MIS(graph: nx.Graph, node_to_index_map=None, verbose=True):
     """ Run the MoMC algorithm to find a MIS of a given graph.
     
     Requires the compiled executable MoMC to be in the
@@ -92,19 +121,23 @@ def run_MoMC_for_unweighted_MIS(graph: nx.Graph):
         graph = a networkx.Graph whose MIS you want to find
 
     Returns:
-        a list of 0-based indices of nodes in the MIS
+        a list of nodes in the MIS
     """
     file_ID, filename = tempfile.mkstemp()
+    if node_to_index_map is None:
+        node_to_index_map = {v: i for i, v in enumerate(graph.nodes)}
+
     try:
         with os.fdopen(file_ID, 'w') as file:
-            write_unweighted_MIS_to_ASCII(graph, file)
+            write_unweighted_MIS_to_ASCII(graph, file, node_to_index_map)
 
         code, out, err = run_cmd(['./MoMC', filename])
-        print("MoMC run status returncode = %d" % code)
 
-        print("=========   MoMC output begins   =========")
-        print(out.decode())
-        print("=========   MoMC output ends     =========")
+        if verbose:
+            print("MoMC run status returncode = %d" % code)
+            print("=========   MoMC output begins   =========")
+            print(out.decode())
+            print("=========   MoMC output ends     =========")
 
         if code < 0:
             print("=========   MoMC error message   =========")
@@ -115,6 +148,45 @@ def run_MoMC_for_unweighted_MIS(graph: nx.Graph):
         os.remove(filename)
         
     return MIS
+
+
+def run_MoMC_for_unweighted_MIS_info(graph: nx.Graph, node_to_index_map=None, verbose=True):
+    """ Run the MoMC algorithm to find a MIS of a given graph.
+    
+    Requires the compiled executable MoMC to be in the
+    current directory.
+    
+    Args:
+        graph = a networkx.Graph whose MIS you want to find
+
+    Returns:
+        (a list of nodes in the MIS, Branching, Time, ProveBranching, ProveTime)
+    """
+    file_ID, filename = tempfile.mkstemp()
+    if node_to_index_map is None:
+        node_to_index_map = {v: i for i, v in enumerate(graph.nodes)}
+
+    try:
+        with os.fdopen(file_ID, 'w') as file:
+            write_unweighted_MIS_to_ASCII(graph, file, node_to_index_map)
+
+        code, out, err = run_cmd(['./MoMC', filename])
+        if verbose:
+            print("MoMC run status returncode = %d" % code)
+            print("=========   MoMC output begins   =========")
+            print(out.decode())
+            print("=========   MoMC output ends     =========")
+
+        if code < 0:
+            print("=========   MoMC error message   =========")
+            print(err.decode())
+
+        MIS, Branching, Time, ProveBranching, ProveTime = parse_MoMC_output_full(out)
+    finally:
+        os.remove(filename)
+        
+    return MIS, Branching, Time, ProveBranching, ProveTime
+
 
 ###################################################################
 # Solving weighted Ising problems (including Rydberg Hamiltonian) #
@@ -190,7 +262,7 @@ def run_akmaxsat_for_Ryd_Ham(xy, V0=4, alpha=6):
         akmaxsat won many categories of MaxSat Evaluation 2010
     
         H = - \sum_i      n_i 
-            + \sum_{<ij>} n_i n_j * V0 / (1 + ||r_i - r_j||^alpha)
+            + \sum_{<ij>} n_i n_j * V0 / ||r_i - r_j||^alpha
     
     Requires the compiled executable akmaxsat to be in the
     current directory.
