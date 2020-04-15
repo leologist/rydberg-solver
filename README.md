@@ -18,4 +18,7 @@ See `solve_MIS_and_Ryd_example.py` for example
 Alternatively, one can write the problem information in the appropriate DIMACS format, and then use the solvers directly by
 
 `./MoMC path_to_instance_file.txt`
+
+or 
+
 `./akmaxsat path_to_instance_file.txt`
