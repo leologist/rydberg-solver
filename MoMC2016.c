@@ -1775,7 +1775,7 @@ void print_version() {
 
 int main(int argc, char *argv[]) {
 	struct rusage starttime, endtime;
-    long sec_0, usec_0, sec, usec, sec_p, usec_p;
+        long sec_0, usec_0, sec, usec, sec_p, usec_p;
 	int i, ordering = -1, _all = FALSE;
 	INIT_CLIQUE = 0;
 	LIST_ALL = FALSE;
@@ -1812,8 +1812,8 @@ int main(int argc, char *argv[]) {
 		printallMaxClique();
 	}
 	getrusage(RUSAGE_SELF, &endtime);
-    sec_0 = (int) starttime.ru_utime.tv_sec;
-    usec_0 = (int) starttime.ru_utime.tv_usec; //microsecs
+        sec_0 = (int) starttime.ru_utime.tv_sec;
+        usec_0 = (int) starttime.ru_utime.tv_usec; //microsecs
 	sec = (int) endtime.ru_utime.tv_sec;
 	usec = (int) endtime.ru_utime.tv_usec;
 	sec_p = (int) lasttime.ru_utime.tv_sec;
