@@ -1819,8 +1819,8 @@ int main(int argc, char *argv[]) {
 	sec_p = (int) lasttime.ru_utime.tv_sec;
 	usec_p = (int) lasttime.ru_utime.tv_usec;
 
-    double runTime = (double) (sec - sec_0 + (double) (usec - usec_0) / 1000000);
-    double proofTime = (double) (sec - sec_p + ((double) (usec - usec_p)) / 1000000);
+        double runTime = (double) (sec - sec_0 + (double) (usec - usec_0) / 1000000);
+        double proofTime = (double) (sec - sec_p + ((double) (usec - usec_p)) / 1000000);
 
 	if (LIST_ALL == TRUE)
 		printf(
