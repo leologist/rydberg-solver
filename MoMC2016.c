@@ -1775,7 +1775,7 @@ void print_version() {
 
 int main(int argc, char *argv[]) {
 	struct rusage starttime, endtime;
-	long sec, usec, sec_p, usec_p;
+    long sec_0, usec_0, sec, usec, sec_p, usec_p;
 	int i, ordering = -1, _all = FALSE;
 	INIT_CLIQUE = 0;
 	LIST_ALL = FALSE;
@@ -1812,26 +1812,30 @@ int main(int argc, char *argv[]) {
 		printallMaxClique();
 	}
 	getrusage(RUSAGE_SELF, &endtime);
+    sec_0 = (int) starttime.ru_utime.tv_sec;
+    usec_0 = (int) starttime.ru_utime.tv_usec; //microsecs
 	sec = (int) endtime.ru_utime.tv_sec;
 	usec = (int) endtime.ru_utime.tv_usec;
 	sec_p = (int) lasttime.ru_utime.tv_sec;
 	usec_p = (int) lasttime.ru_utime.tv_usec;
+
+    double runTime = (double) (sec - sec_0 + (double) (usec - usec_0) / 1000000);
+    double proofTime = (double) (sec - sec_p + ((double) (usec - usec_p)) / 1000000);
+
 	if (LIST_ALL == TRUE)
 		printf(
 				"s Instance %s Max_CLQ %d Count %d Branching %d Time %4.2lf ProveBranching %d ProveTime %4.2lf\n",
 				argv[1], MAX_CLQ_SIZE, MAX_COUNT, BRANCHING_COUNT,
-				(double) (sec + (double) usec / 1000000),
+				runTime,
 				BRANCHING_COUNT - LAST_BRANCHING_COUNT,
-				(double) (sec - sec_p
-						+ (double) (usec - usec_p) / (double) 1000000));
+				proofTime);
 	else
 		printf(
-				"s Instance %s Max_CLQ %d Branching %d Time %4.2lf ProveBranching %d ProveTime %4.2lf\n",
+				"s Instance %s Max_CLQ %d Branching %d Time %6.6lf ProveBranching %d ProveTime %6.6lf\n",
 				argv[1], MAX_CLQ_SIZE, BRANCHING_COUNT,
-				(double) (sec + (double) usec / 1000000),
+				runTime,
 				BRANCHING_COUNT - LAST_BRANCHING_COUNT,
-				(double) (sec - sec_p
-						+ (double) (usec - usec_p) / (double) 1000000));
+				proofTime);
 
 	return TRUE;
 }
